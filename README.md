@@ -23,6 +23,17 @@ Prereqs (optional for local rendering): `pandoc`, `marp-cli` (Node).
 - Validate storyboard (optional): `bin/validate-storyboard`
 - Clean outputs: `bin/clean`
 
+### Generate a research draft locally
+Requires Python and the open_deep_research package on your machine.
+
+1) Install dependencies locally (example):
+   - `pip install -U open-deep-research` (or `pip install -U open_deep_research`)
+   - Set your provider keys (e.g., `export OPENAI_API_KEY=...` or `ANTHROPIC_API_KEY=...`)
+
+2) Generate a draft from `problem.md`:
+   - `bin/generate`
+   - Output: `docs/report.draft.md`
+
 If tools aren’t installed locally, CI will render on push.
 
 ## CI

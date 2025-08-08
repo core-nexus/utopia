@@ -96,5 +96,15 @@ clean () {
   rm -f docs/report.html docs/report.pdf slides/talk.html slides/talk.pdf
 }
 
+# -------- New: Generate deep research report --------
+generate () {
+  if command -v python3 >/dev/null 2>&1; then
+    shell python3 scripts/generate_report.py --problem problem.md --out docs/report.draft.md
+  else
+    echo "python3 not found; cannot run generator."
+    exit 1
+  fi
+}
+
 # DO IT:
 main "$@"
