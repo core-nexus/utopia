@@ -65,7 +65,7 @@ jobs:
           cp docs/report.pdf  site/docs/report.pdf || true
           cp slides/talk.html site/slides/index.html
           cp slides/talk.pdf  site/slides/talk.pdf || true
-          cat > site/index.html << 'HTML'
+          cat > site/index.html <<HTML
           <!DOCTYPE html>
           <html lang="en">
           <head>
@@ -80,7 +80,7 @@ jobs:
               <li><a href="docs/">Report (HTML)</a> — <a href="docs/report.pdf">PDF</a></li>
               <li><a href="slides/">Slides (HTML)</a> — <a href="slides/talk.pdf">PDF</a></li>
             </ul>
-            <p>Source: <a href="https://github.com/${GITHUB_REPOSITORY}">${GITHUB_REPOSITORY}</a></p>
+            <p>Source: <a href="${GITHUB_SERVER_URL:-https://github.com}/$GITHUB_REPOSITORY">$GITHUB_REPOSITORY</a></p>
           </body>
           </html>
           HTML
