@@ -1,0 +1,45 @@
+name: build-artifacts
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node (for Marp)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install marp-cli
+        run: npm install -g @marp-team/marp-cli
+
+      - name: Install pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+
+      - name: Render report (HTML/PDF)
+        run: |
+          pandoc docs/report.md -s -o docs/report.html
+          pandoc docs/report.md -s -o docs/report.pdf
+
+      - name: Render slides (HTML/PDF)
+        run: |
+          marp --html --allow-local-files --output slides/talk.html slides/talk.md
+          marp --pdf  --allow-local-files --output slides/talk.pdf  slides/talk.md
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: corenexus-artifacts
+          path: |
+            docs/report.html
+            docs/report.pdf
+            slides/talk.html
+            slides/talk.pdf

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/schemas/storyboard.schema.json",
+  "title": "Storyboard",
+  "type": "object",
+  "required": ["version", "metadata", "scenes"],
+  "properties": {
+    "version": { "type": "string" },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "duration_target_sec": { "type": "number", "minimum": 1 },
+        "language": { "type": "string" },
+        "license": { "type": "string" }
+      },
+      "required": ["title"]
+    },
+    "scenes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "description", "duration_sec"],
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" },
+          "duration_sec": { "type": "number", "minimum": 1 },
+          "assets": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type", "uri"],
+              "properties": {
+                "type": { "type": "string", "enum": ["image", "video", "audio", "text"] },
+                "uri": { "type": "string" },
+                "alt": { "type": "string" }
+              }
+            }
+          },
+          "voiceover_ref": { "type": "string" },
+          "captions": { "type": "string" }
+        }
+      }
+    },
+    "voiceover": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "text"],
+        "properties": {
+          "id": { "type": "string" },
+          "text": { "type": "string" }
+        }
+      }
+    }
+  }
+}

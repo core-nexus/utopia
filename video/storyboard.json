@@ -1,0 +1,24 @@
+{
+  "version": "0.1",
+  "metadata": {
+    "title": "Solar Desalination Pilot Explainer",
+    "duration_target_sec": 75,
+    "language": "en",
+    "license": "CC-BY-4.0"
+  },
+  "scenes": [
+    {
+      "id": "s1",
+      "description": "Map of Ghana’s coast; highlight affected communities; quick problem statement.",
+      "duration_sec": 6,
+      "assets": [
+        { "type": "image", "uri": "assets/maps/ghana_coast.png", "alt": "Ghana coast map" }
+      ],
+      "voiceover_ref": "v1",
+      "captions": "Coastal communities face increasing salinity and water stress."
+    }
+  ],
+  "voiceover": [
+    { "id": "v1", "text": "Along Ghana’s coast, communities are seeing salt creep into wells, making water unsafe and scarce." }
+  ]
+}

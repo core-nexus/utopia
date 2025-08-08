@@ -1,0 +1,16 @@
+# Build artefacts
+docs/report.html
+docs/report.pdf
+slides/talk.html
+slides/talk.pdf
+
+# Node/npm
+node_modules/
+package-lock.json
+
+# Python venvs
+.venv/
+venv/
+
+# OS
+.DS_Store
