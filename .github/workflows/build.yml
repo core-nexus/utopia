@@ -1,10 +1,20 @@
-name: build-artifacts
+name: build-and-deploy
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -43,3 +53,49 @@ jobs:
             docs/report.pdf
             slides/talk.html
             slides/talk.pdf
+
+      - name: Prepare Pages site
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          mkdir -p site/docs site/slides
+          cp docs/report.html site/docs/index.html
+          cp docs/report.pdf  site/docs/report.pdf || true
+          cp slides/talk.html site/slides/index.html
+          cp slides/talk.pdf  site/slides/talk.pdf || true
+          cat > site/index.html << 'HTML'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>CoreNexus Artifacts</title>
+            <style>body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:2rem;line-height:1.6}a{color:#0b5bd3;text-decoration:none}a:hover{text-decoration:underline}</style>
+          </head>
+          <body>
+            <h1>CoreNexus Build</h1>
+            <ul>
+              <li><a href="docs/">Report (HTML)</a> — <a href="docs/report.pdf">PDF</a></li>
+              <li><a href="slides/">Slides (HTML)</a> — <a href="slides/talk.pdf">PDF</a></li>
+            </ul>
+            <p>Source: <a href="https://github.com/${GITHUB_REPOSITORY}">${GITHUB_REPOSITORY}</a></p>
+          </body>
+          </html>
+          HTML
+
+      - name: Upload Pages artifact
+        if: ${{ github.event_name == 'push' }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    if: ${{ github.event_name == 'push' }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

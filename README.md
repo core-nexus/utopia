@@ -14,12 +14,14 @@ A minimal, Git-native workspace for AI-first collaboration on SDG-aligned gigs. 
 - `scripts/` — render helpers (local dev)
 
 ## Quickstart (local)
-Prereqs (optional for local rendering): `pandoc`, `marp-cli` (Node), `make`.
+Prereqs (optional for local rendering): `pandoc`, `marp-cli` (Node).
 
-- Render report to HTML: `make docs-html`
-- Render report to PDF (needs Pandoc + LaTeX): `make docs-pdf`
-- Render slides to HTML: `make slides-html`
-- Render slides to PDF: `make slides-pdf`
+- Render report to HTML: `bin/docs-html`
+- Render report to PDF: `bin/docs-pdf`
+- Render slides to HTML: `bin/slides-html`
+- Render slides to PDF: `bin/slides-pdf`
+- Validate storyboard (optional): `bin/validate-storyboard`
+- Clean outputs: `bin/clean`
 
 If tools aren’t installed locally, CI will render on push.
 

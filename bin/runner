@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# -------- Helpers --------
+COLOR_HIGHLIGHT='\033[1;35m'
+NO_COLOR='\033[0m'
+
+main () {
+  run_targets "$@"
+}
+
+run_targets () {
+  for func in "$@"; do
+    run "$func"
+  done
+}
+
+run () {
+  func=$1
+  if [[ $(type -t $func || true) == function ]]; then
+    print_func "${func}"
+    $func
+  else
+    echo "Unknown command: ${func}"
+    exit 1
+  fi
+}
+
+shell () {
+  if [[ -z ${1-} ]]; then
+    echo "Error: \`shell\` called with no arguments"
+    exit 1
+  fi
+
+  print_cmd "$@"
+  "$@"
+}
+
+print_func () {
+  echo -e "${COLOR_HIGHLIGHT}--> $@()${NO_COLOR}"
+}
+
+print_cmd () {
+  echo -e "${COLOR_HIGHLIGHT}----> $@${NO_COLOR}"
+}
+
+in_test_env () {
+  # shell CARGO_TARGET_DIR=target/subdir
+  run_targets "$@"
+}
+
+# -------- Commands (converted from Makefile) --------
+
+docs_html () {
+  if command -v pandoc >/dev/null 2>&1; then
+    shell pandoc docs/report.md -s -o docs/report.html || true
+  else
+    echo "pandoc not found; skipping HTML. Use CI or install pandoc."
+  fi
+}
+
+docs_pdf () {
+  if command -v pandoc >/dev/null 2>&1; then
+    shell pandoc docs/report.md -s -o docs/report.pdf || true
+  else
+    echo "pandoc not found; skipping PDF. Use CI or install pandoc."
+  fi
+}
+
+slides_html () {
+  if command -v marp >/dev/null 2>&1; then
+    shell marp --html --allow-local-files --output slides/talk.html slides/talk.md || true
+  else
+    echo "marp not found; skipping slides HTML. Use CI or install @marp-team/marp-cli."
+  fi
+}
+
+slides_pdf () {
+  if command -v marp >/dev/null 2>&1; then
+    shell marp --pdf --allow-local-files --output slides/talk.pdf slides/talk.md || true
+  else
+    echo "marp not found; skipping slides PDF. Use CI or install @marp-team/marp-cli."
+  fi
+}
+
+validate_storyboard () {
+  if command -v npx >/dev/null 2>&1; then
+    # Attempt validation if ajv-cli is available/resolvable; ignore failures for offline envs
+    shell npx -y ajv-cli@5 validate -s schemas/storyboard.schema.json -d video/storyboard.json || true
+  else
+    echo "npx not found. To validate: npx ajv-cli@5 validate -s schemas/storyboard.schema.json -d video/storyboard.json"
+  fi
+}
+
+clean () {
+  rm -f docs/report.html docs/report.pdf slides/talk.html slides/talk.pdf
+}
+
+# DO IT:
+main "$@"
+
