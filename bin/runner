@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# -------- Helpers --------
+# -------- Helpers (source-only) --------
 COLOR_HIGHLIGHT='\033[1;35m'
 NO_COLOR='\033[0m'
 
@@ -44,67 +44,10 @@ print_cmd () {
   echo -e "${COLOR_HIGHLIGHT}----> $@${NO_COLOR}"
 }
 
-# -------- Commands --------
-
-docs_html () {
-  if command -v pandoc >/dev/null 2>&1; then
-    shell pandoc docs/report.md -s -o docs/report.html || true
-  else
-    echo "pandoc not found; skipping HTML. Use CI or install pandoc."
-  fi
+in_test_env () {
+  # shell CARGO_TARGET_DIR=target/subdir
+  run_targets "$@"
 }
 
-docs_pdf () {
-  if command -v pandoc >/dev/null 2>&1; then
-    if command -v wkhtmltopdf >/dev/null 2>&1; then
-      shell pandoc docs/report.md -s --pdf-engine=wkhtmltopdf -o docs/report.pdf || true
-    else
-      echo "wkhtmltopdf not found; pandoc may require LaTeX for PDF. Install wkhtmltopdf or use CI."
-      shell pandoc docs/report.md -s -o docs/report.pdf || true
-    fi
-  else
-    echo "pandoc not found; skipping PDF. Use CI or install pandoc."
-  fi
-}
-
-slides_html () {
-  if command -v marp >/dev/null 2>&1; then
-    shell marp --html --allow-local-files --output slides/talk.html slides/talk.md || true
-  else
-    echo "marp not found; skipping slides HTML. Use CI or install @marp-team/marp-cli."
-  fi
-}
-
-slides_pdf () {
-  if command -v marp >/dev/null 2>&1; then
-    shell marp --pdf --allow-local-files --output slides/talk.pdf slides/talk.md || true
-  else
-    echo "marp not found; skipping slides PDF. Use CI or install @marp-team/marp-cli."
-  fi
-}
-
-validate_storyboard () {
-  if command -v npx >/dev/null 2>&1; then
-    # Attempt validation if ajv-cli is available/resolvable; ignore failures for offline envs
-    shell npx -y ajv-cli@5 validate -s schemas/storyboard.schema.json -d video/storyboard.json || true
-  else
-    echo "npx not found. To validate: npx ajv-cli@5 validate -s schemas/storyboard.schema.json -d video/storyboard.json"
-  fi
-}
-
-clean () {
-  rm -f docs/report.html docs/report.pdf slides/talk.html slides/talk.pdf
-}
-
-# -------- New: Generate deep research report --------
-generate () {
-  if command -v python3 >/dev/null 2>&1; then
-    shell python3 scripts/generate_report.py --problem problem.md --out docs/report.draft.md
-  else
-    echo "python3 not found; cannot run generator."
-    exit 1
-  fi
-}
-
-# DO IT:
-main "$@"
+# Note: This file deliberately defines helpers only.
+# Source it from bin/* command scripts and call: main your_func_name

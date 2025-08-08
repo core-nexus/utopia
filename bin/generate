@@ -1,3 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
-"$(dirname "$0")/runner" generate
+. "$(dirname "$0")/runner"
+
+generate () {
+  if command -v python3 >/dev/null 2>&1; then
+    shell python3 scripts/generate_report.py --problem problem.md --out docs/report.draft.md
+  else
+    echo "python3 not found; cannot run generator."
+    exit 1
+  fi
+}
+
+main generate

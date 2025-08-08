@@ -1,3 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
-"$(dirname "$0")/runner" validate_storyboard
+. "$(dirname "$0")/runner"
+
+validate_storyboard () {
+  if command -v npx >/dev/null 2>&1; then
+    # Attempt validation if ajv-cli is available/resolvable; ignore failures for offline envs
+    shell npx -y ajv-cli@5 validate -s schemas/storyboard.schema.json -d video/storyboard.json || true
+  else
+    echo "npx not found. To validate: npx ajv-cli@5 validate -s schemas/storyboard.schema.json -d video/storyboard.json"
+  fi
+}
+
+main validate_storyboard

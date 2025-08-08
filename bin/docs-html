@@ -1,3 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
-"$(dirname "$0")/runner" docs_html
+. "$(dirname "$0")/runner"
+
+docs_html () {
+  if command -v pandoc >/dev/null 2>&1; then
+    shell pandoc docs/report.md -s -o docs/report.html || true
+  else
+    echo "pandoc not found; skipping HTML. Use CI or install pandoc."
+  fi
+}
+
+main docs_html

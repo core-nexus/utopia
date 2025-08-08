@@ -1,3 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
-"$(dirname "$0")/runner" docs_pdf
+. "$(dirname "$0")/runner"
+
+docs_pdf () {
+  if command -v pandoc >/dev/null 2>&1; then
+    if command -v wkhtmltopdf >/dev/null 2>&1; then
+      shell pandoc docs/report.md -s --pdf-engine=wkhtmltopdf -o docs/report.pdf || true
+    else
+      echo "wkhtmltopdf not found; pandoc may require LaTeX for PDF. Install wkhtmltopdf or use CI."
+      shell pandoc docs/report.md -s -o docs/report.pdf || true
+    fi
+  else
+    echo "pandoc not found; skipping PDF. Use CI or install pandoc."
+  fi
+}
+
+main docs_pdf

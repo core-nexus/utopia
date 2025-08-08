@@ -1,3 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
-"$(dirname "$0")/runner" clean
+. "$(dirname "$0")/runner"
+
+clean () {
+  rm -f docs/report.html docs/report.pdf slides/talk.html slides/talk.pdf
+}
+
+main clean
