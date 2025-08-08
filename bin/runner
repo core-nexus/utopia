@@ -44,10 +44,6 @@ print_cmd () {
   echo -e "${COLOR_HIGHLIGHT}----> $@${NO_COLOR}"
 }
 
-in_test_env () {
-  run_targets "$@"
-}
-
 # -------- Commands --------
 
 docs_html () {
