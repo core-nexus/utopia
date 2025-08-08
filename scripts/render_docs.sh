@@ -14,8 +14,8 @@ echo "Rendering $in → $out_html"
 pandoc "$in" -s -o "$out_html"
 
 if command -v wkhtmltopdf >/dev/null 2>&1; then
-  echo "Rendering $in → $out_pdf (wkhtmltopdf path)"
-  pandoc "$in" -s -o "$out_pdf"
+  echo "Rendering $in → $out_pdf (wkhtmltopdf engine)"
+  pandoc "$in" -s --pdf-engine=wkhtmltopdf -o "$out_pdf"
 else
   echo "Skipping PDF (LaTeX or wkhtmltopdf not found)."
 fi
