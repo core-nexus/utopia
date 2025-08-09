@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ensure required secrets are present
+: "${FIREWORKS_KEY:?FIREWORKS_KEY is required}"
+: "${FIRECRAWL_KEY:?FIRECRAWL_KEY is required}"
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo "docker is required" >&2
+  exit 1
+fi
+
+IMAGE="ghcr.io/dzhng/deep-research:latest"
+
+# Condense problem.md into a single line for the prompt
+QUERY=$(tr '\n' ' ' < problem.md)
+
+docker pull "$IMAGE" >/dev/null
+
+docker run --rm -i \
+  -e FIREWORKS_KEY="$FIREWORKS_KEY" \
+  -e FIRECRAWL_KEY="$FIRECRAWL_KEY" \
+  -v "$(pwd)":/work -w /work \
+  "$IMAGE" bash -lc "npm run docker" <<EOF2
+$QUERY
+4
+2
+report
+EOF2
