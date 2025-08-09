@@ -1,0 +1,44 @@
+name: deep-research-report
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch main
+        run: git fetch origin main
+      - name: Check for problem.md changes
+        id: changes
+        run: |
+          base=$(git merge-base origin/main HEAD)
+          if git diff --quiet "$base" -- problem.md; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Generate report
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          FIREWORKS_KEY: ${{ secrets.FIREWORKS_KEY }}
+        run: |
+          if [ -z "$FIREWORKS_KEY" ]; then
+            echo "FIREWORKS_KEY secret is required" >&2
+            exit 1
+          fi
+          ./bin/generate-report
+      - name: Upload report artifact
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: deep-research-report
+          path: report.md
