@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Ensure required secrets are present
+: "${FIREWORKS_KEY:?FIREWORKS_KEY is required}"
+: "${FIRECRAWL_KEY:?FIRECRAWL_KEY is required}"
+
+# Required commands
+for cmd in docker git curl jq; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "$cmd is required" >&2
+    exit 1
+  fi
+done
+
+REPO="https://github.com/Ozamatash/deep-research-mcp"
+API="https://api.github.com/repos/Ozamatash/deep-research-mcp"
+
+# Prefer a tagged release from the last 2 weeks, fall back to main
+cutoff=$(date -u -d '2 weeks ago' +%s)
+ref="main"
+
+# Check latest release
+latest_release=$(curl -fs "$API/releases/latest" 2>/dev/null || true)
+if [ -n "$latest_release" ]; then
+  published=$(echo "$latest_release" | jq -r '.published_at')
+  if [ "$published" != "null" ]; then
+    published_ts=$(date -d "$published" +%s)
+    if [ "$published_ts" -ge "$cutoff" ]; then
+      ref=$(echo "$latest_release" | jq -r '.tag_name')
+    fi
+  fi
+fi
+
+# If no recent release, check tags
+if [ "$ref" = "main" ]; then
+  tags=$(curl -fs "$API/tags?per_page=10" 2>/dev/null || true)
+  if [ -n "$tags" ]; then
+    while read -r tag sha; do
+      commit_info=$(curl -fs "$API/commits/$sha" 2>/dev/null || true)
+      date=$(echo "$commit_info" | jq -r '.commit.committer.date')
+      if [ -n "$date" ]; then
+        date_ts=$(date -d "$date" +%s)
+        if [ "$date_ts" -ge "$cutoff" ]; then
+          ref="$tag"
+          break
+        fi
+      fi
+    done < <(echo "$tags" | jq -r '.[] | "\(.name) \(.commit.sha)"')
+  fi
+fi
+
+tmpdir=$(mktemp -d)
+network="deep-research-net"
+cleanup() {
+  rm -rf "$tmpdir"
+  docker rm -f deep-research-run >/dev/null 2>&1 || true
+  docker stop firecrawl >/dev/null 2>&1 || true
+  docker network rm "$network" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
+git clone --depth 1 --branch "$ref" "$REPO" "$tmpdir"
+touch "$tmpdir/.env.local"
+
+# Build deep-research image
+docker build -t deep-research-mcp:local "$tmpdir" >/dev/null
+
+# Network and local Firecrawl
+if ! docker network inspect "$network" >/dev/null 2>&1; then
+  docker network create "$network" >/dev/null
+fi
+docker run -d --rm --name firecrawl --network "$network" \
+  -e FIRECRAWL_KEY \
+  ghcr.io/mendableai/firecrawl:latest >/dev/null
+
+# Condense problem.md into a single line for the prompt
+QUERY=$(tr '\n' ' ' < problem.md)
+
+# Run deep-research with local Firecrawl
+printf "%s\n4\n2\n\n\n\n\n" "$QUERY" | docker run -i --name deep-research-run --network "$network" \
+  -e OPENAI_API_KEY="$FIREWORKS_KEY" \
+  -e OPENAI_BASE_URL=https://api.fireworks.ai/inference/v1 \
+  -e OPENAI_MODEL=deepseek-chat \
+  -e FIRECRAWL_KEY \
+  -e FIRECRAWL_BASE_URL=http://firecrawl:3002 \
+  deep-research-mcp:local >/dev/null
+
+docker cp deep-research-run:/app/output.md report.md >/dev/null
