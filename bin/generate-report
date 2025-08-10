@@ -3,6 +3,7 @@ set -euo pipefail
 
 # Ensure required secrets are present
 : "${FIREWORKS_KEY:?FIREWORKS_KEY is required}"
+: "${FIRECRAWL_KEY:?FIRECRAWL_KEY is required}"
 
 # Required commands
 for cmd in docker git curl jq; do
@@ -69,7 +70,9 @@ docker build -t deep-research:local "$tmpdir" >/dev/null
 if ! docker network inspect "$network" >/dev/null 2>&1; then
   docker network create "$network" >/dev/null
 fi
-docker run -d --rm --name firecrawl --network "$network" ghcr.io/mendableai/firecrawl:latest >/dev/null
+docker run -d --rm --name firecrawl --network "$network" \
+  -e FIRECRAWL_KEY \
+  ghcr.io/mendableai/firecrawl:latest >/dev/null
 
 # Condense problem.md into a single line for the prompt
 QUERY=$(tr '\n' ' ' < problem.md)
@@ -77,6 +80,7 @@ QUERY=$(tr '\n' ' ' < problem.md)
 # Run deep-research with local Firecrawl
 docker run -i --name deep-research-run --network "$network" \
   -e FIREWORKS_KEY \
+  -e FIRECRAWL_KEY \
   -e FIRECRAWL_BASE_URL=http://firecrawl:3002 \
   deep-research:local <<EOF2
 ${QUERY}

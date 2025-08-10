@@ -17,11 +17,11 @@ jobs:
           fetch-depth: 0
       - name: Fetch main
         run: git fetch origin main
-      - name: Check for problem.md changes
+      - name: Check for report changes
         id: changes
         run: |
           base=$(git merge-base origin/main HEAD)
-          if git diff --quiet "$base" -- problem.md; then
+          if git diff --quiet "$base" -- problem.md .github/workflows/generate-report.yml; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -30,9 +30,14 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         env:
           FIREWORKS_KEY: ${{ secrets.FIREWORKS_KEY }}
+          FIRECRAWL_KEY: ${{ secrets.FIRECRAWL_KEY }}
         run: |
           if [ -z "$FIREWORKS_KEY" ]; then
             echo "FIREWORKS_KEY secret is required" >&2
+            exit 1
+          fi
+          if [ -z "$FIRECRAWL_KEY" ]; then
+            echo "FIRECRAWL_KEY secret is required" >&2
             exit 1
           fi
           ./bin/generate-report
