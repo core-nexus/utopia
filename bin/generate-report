@@ -13,8 +13,8 @@ for cmd in docker git curl jq; do
   fi
 done
 
-REPO="https://github.com/dzhng/deep-research"
-API="https://api.github.com/repos/dzhng/deep-research"
+REPO="https://github.com/Ozamatash/deep-research-mcp"
+API="https://api.github.com/repos/Ozamatash/deep-research-mcp"
 
 # Prefer a tagged release from the last 2 weeks, fall back to main
 cutoff=$(date -u -d '2 weeks ago' +%s)
@@ -64,7 +64,7 @@ git clone --depth 1 --branch "$ref" "$REPO" "$tmpdir"
 touch "$tmpdir/.env.local"
 
 # Build deep-research image
-docker build -t deep-research:local "$tmpdir" >/dev/null
+docker build -t deep-research-mcp:local "$tmpdir" >/dev/null
 
 # Network and local Firecrawl
 if ! docker network inspect "$network" >/dev/null 2>&1; then
@@ -78,14 +78,12 @@ docker run -d --rm --name firecrawl --network "$network" \
 QUERY=$(tr '\n' ' ' < problem.md)
 
 # Run deep-research with local Firecrawl
-docker run -i --name deep-research-run --network "$network" \
-  -e FIREWORKS_KEY \
+printf "%s\n4\n2\n\n\n\n\n" "$QUERY" | docker run -i --name deep-research-run --network "$network" \
+  -e OPENAI_API_KEY="$FIREWORKS_KEY" \
+  -e OPENAI_BASE_URL=https://api.fireworks.ai/inference/v1 \
+  -e OPENAI_MODEL=deepseek-chat \
   -e FIRECRAWL_KEY \
   -e FIRECRAWL_BASE_URL=http://firecrawl:3002 \
-  deep-research:local <<EOF2
-${QUERY}
-4
-2
-EOF2
+  deep-research-mcp:local >/dev/null
 
-docker cp deep-research-run:/app/report.md report.md >/dev/null
+docker cp deep-research-run:/app/output.md report.md >/dev/null
