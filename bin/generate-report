@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+set -euo pipefail
+set -x
+. "$(dirname "$0")/runner"
+
+# Generate a deep-research report by:
+# - Cloning harlantwood/deep-research-cli (branch: cli) into ./tmp
+# - Piping a problem.md into its stdin
+# - Saving output to problems/<slug>/solution/report.md
+#
+# Usage:
+#   bin/generate-report [--problem path/to/problem.md] [--out-dir path]
+
+generate_report () {
+  local problem_path="problem.md"
+  local out_dir=""
+
+  while [[ ${1-} ]]; do
+    case "$1" in
+      --problem)
+        problem_path=${2:?Missing value for --problem}
+        shift 2
+        ;;
+      --out-dir)
+        out_dir=${2:?Missing value for --out-dir}
+        shift 2
+        ;;
+      *)
+        echo "Unknown argument: $1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  if [[ ! -f "$problem_path" ]]; then
+    echo "Problem file not found: $problem_path" >&2
+    exit 1
+  fi
+
+  mkdir -p tmp
+
+  local repo_url="https://github.com/harlantwood/deep-research-cli.git"
+  local repo_branch="cli"
+  local repo_dir="tmp/deep-research-cli"
+
+  if [[ -d "$repo_dir/.git" ]]; then
+    print_func "update_repo"
+    shell git -C "$repo_dir" fetch origin "$repo_branch"
+    shell git -C "$repo_dir" checkout -f "$repo_branch"
+    shell git -C "$repo_dir" reset --hard "origin/$repo_branch" || true
+  else
+    print_func "clone_repo"
+    shell git clone --depth 1 --branch "$repo_branch" "$repo_url" "$repo_dir"
+  fi
+
+  # Derive a sensible slug from the first markdown header; fallback to timestamp
+  local title slug
+  title=$(grep -m1 '^#' "$problem_path" | sed 's/^#\+ *//') || true
+  if [[ -n "${title:-}" ]]; then
+    slug=$(echo "$title" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')
+  else
+    slug="problem-$(date +%Y%m%d-%H%M%S)"
+  fi
+
+  if [[ -z "$out_dir" ]]; then
+    out_dir="problems/$slug/solution"
+  fi
+
+  local problem_dst="problems/$slug/problem.md"
+  mkdir -p "$out_dir"
+  mkdir -p "$(dirname "$problem_dst")"
+  # Keep a copy of the input alongside the solution
+  shell cp "$problem_path" "$problem_dst"
+
+  # Try to locate a CLI entry; prefer an explicit script if present
+  local cli_cmd=""
+  if [[ -x "$repo_dir/cli" ]]; then
+    cli_cmd="$repo_dir/cli"
+  elif [[ -x "$repo_dir/bin/cli" ]]; then
+    cli_cmd="$repo_dir/bin/cli"
+  elif [[ -x "$repo_dir/bin/deep-research" ]]; then
+    cli_cmd="$repo_dir/bin/deep-research"
+  elif [[ -f "$repo_dir/package.json" && -x "$(command -v npm || true)" ]]; then
+    print_func "install_cli_deps"
+    # Install deps and try common build+entrypoints
+    shell bash -lc "cd '$repo_dir' && npm ci"
+    if [[ -f "$repo_dir/package.json" ]]; then
+      # Best-effort build (ignore failures; CLI may be TS or ESM)
+      shell bash -lc "cd '$repo_dir' && npm run -s build || true"
+    fi
+    if [[ -f "$repo_dir/dist/cli.js" ]]; then
+      cli_cmd="node '$repo_dir/dist/cli.js'"
+    elif [[ -f "$repo_dir/dist/index.js" ]]; then
+      cli_cmd="node '$repo_dir/dist/index.js'"
+    elif [[ -f "$repo_dir/index.js" ]]; then
+      cli_cmd="node '$repo_dir/index.js'"
+    fi
+  fi
+
+  if [[ -z "$cli_cmd" ]]; then
+    echo "Could not determine deep-research CLI entrypoint in $repo_dir" >&2
+    echo "Inspect the repo and update bin/generate-report to point to the right script." >&2
+    exit 1
+  fi
+
+  local tmp_out="tmp/deep-research-output.md"
+  print_func "run_cli"
+  # Pipe the problem into the CLI and capture stdout
+  # Expect the CLI to read from stdin and write report to stdout
+  shell bash -lc "set -o pipefail; cat '$problem_path' | $cli_cmd > '$tmp_out'"
+
+  # Move output to final location
+  local out_path="$out_dir/report.md"
+  shell mv "$tmp_out" "$out_path"
+
+  echo "Saved report to: $out_path"
+}
+
+main generate_report "$@"

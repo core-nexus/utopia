@@ -23,6 +23,12 @@ Prereqs (optional for local rendering): `pandoc`, `marp-cli` (Node).
 - Validate storyboard (optional): `bin/validate-storyboard`
 - Clean outputs: `bin/clean`
 
+### Generate a deep-research report
+Uses harlantwood/deep-research-cli (branch `cli`). Clones to `./tmp`, pipes `problem.md` to stdin, and writes under `problems/<slug>/solution/report.md`.
+
+- Run: `bin/generate-report` (or `bin/generate-report --problem path/to/problem.md`)
+- Output: `problems/<slug>/solution/report.md` with a copy of the input at `problems/<slug>/problem.md`
+
 ### Generate a research draft locally
 Requires Python and the open_deep_research package on your machine.
 
