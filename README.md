@@ -26,7 +26,7 @@ A **Utopia Node** is a self-contained, forkable repository designed to tackle pi
 
 Imagine millions of these nodes, each a **mini-laboratory of innovation**, forking and merging to create a global tapestry of solutions. 🧩  
 
-With the [Corenexus](https://corenexus.is) interface, you will be able to:
+With the [CoreNexus](https://corenexus.is) interface, you will be able to:
 
 - Navigate this fractal network  
 - Discover trusted insights  
