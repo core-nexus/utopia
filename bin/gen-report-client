@@ -16,6 +16,7 @@ RESEARCH_TOPIC=$(cd bin/nodejs && yarn tsx topic-reader.ts "$TOPIC_SLUG")
 LANGGRAPH_SERVER=http://127.0.0.1:2024
 shell npx --yes wait-on "${LANGGRAPH_SERVER}/docs" # wait for the server to be ready
 
+# Create assistant using more robust curl with proper JSON handling
 ASSIST=$(
 curl -s -X POST "$LANGGRAPH_SERVER/assistants" \
   -H 'Content-Type: application/json' \
@@ -39,19 +40,29 @@ curl -s -X POST "$LANGGRAPH_SERVER/assistants" \
 
 echo "assistant_id: $ASSIST"
 
-curl -s -X POST ${LANGGRAPH_SERVER}/runs/wait \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "assistant_id": "'"$ASSIST"'",
-    "input": {
-      "research_topic": "'"$RESEARCH_TOPIC"'"
-    },
-    "config": { "configurable": {
+# Use a temporary file for the JSON payload to handle multiline content properly
+TEMP_JSON=$(mktemp)
+cat > "$TEMP_JSON" <<EOF
+{
+  "assistant_id": "$ASSIST",
+  "input": {
+    "research_topic": $(echo "$RESEARCH_TOPIC" | jq -Rs .)
+  },
+  "config": {
+    "configurable": {
       "llm_provider": "lmstudio",
       "lmstudio_base_url": "http://localhost:1234/v1",
       "local_llm": "openai/gpt-oss-20b",
       "max_web_research_loops": 5,
       "fetch_full_page": true,
       "use_tool_calling": false
-    }}
-  }'
+    }
+  }
+}
+EOF
+
+curl -s -X POST "${LANGGRAPH_SERVER}/runs/wait" \
+  -H 'Content-Type: application/json' \
+  -d "@$TEMP_JSON"
+
+rm "$TEMP_JSON"
