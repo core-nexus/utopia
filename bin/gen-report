@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+set -x
+. "$(dirname "$0")/runner"
+
+# Generate a deep-research report by:
+# - Cloning https://github.com/harlantwood/local-deep-researcher.git into ./tmp
+
+shell git clone https://github.com/harlantwood/local-deep-researcher.git  ./tmp/local-deep-researcher
+
+cd ./tmp/local-deep-researcher
+
+shell python -m venv .venv
+shell source .venv/bin/activate
+
+if ! command -v uvx &>/dev/null; then
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+fi
+
+shell uvx --refresh --from "langgraph-cli[inmem]" --with-editable . --python 3.11 langgraph dev --no-browser --studio-url http://localhost:2024
+
+./run.sh
