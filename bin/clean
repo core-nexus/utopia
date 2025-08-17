@@ -6,4 +6,4 @@ clean () {
   rm -f docs/report.html docs/report.pdf slides/talk.html slides/talk.pdf
 }
 
-main clean
+run clean

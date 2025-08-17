@@ -1,17 +1,20 @@
 #!/bin/bash
 set -euo pipefail
-# set -x
+set -x
+
+UTOPIA_ROOT=$(git rev-parse --show-toplevel)
+. "${UTOPIA_ROOT}/bin/runner"
 
 if [[ -z "${1:-}" ]]; then
   echo "Usage: $0 <topic_slug>"
   exit 1
 fi
 TOPIC_SLUG=$1
+
 RESEARCH_TOPIC=$(cd bin/nodejs && yarn tsx topic-reader.ts "$TOPIC_SLUG")
 
 LANGGRAPH_SERVER=http://127.0.0.1:2024
-npx --yes wait-on "http://${LANGGRAPH_SERVER}/docs" # wait for the server to be ready
-
+shell npx --yes wait-on "${LANGGRAPH_SERVER}/docs" # wait for the server to be ready
 
 ASSIST=$(
 curl -s -X POST "$LANGGRAPH_SERVER/assistants" \
@@ -36,7 +39,7 @@ curl -s -X POST "$LANGGRAPH_SERVER/assistants" \
 
 echo "assistant_id: $ASSIST"
 
-curl -s -X POST http://${LANGGRAPH_SERVER}/runs/wait \
+curl -s -X POST ${LANGGRAPH_SERVER}/runs/wait \
   -H 'Content-Type: application/json' \
   -d '{
     "assistant_id": "'"$ASSIST"'",

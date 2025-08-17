@@ -10,4 +10,4 @@ slides_html () {
   fi
 }
 
-main slides_html
+run slides_html

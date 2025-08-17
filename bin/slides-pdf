@@ -10,4 +10,4 @@ slides_pdf () {
   fi
 }
 
-main slides_pdf
+run slides_pdf

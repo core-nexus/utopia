@@ -10,4 +10,4 @@ docs_html () {
   fi
 }
 
-main docs_html
+run docs_html

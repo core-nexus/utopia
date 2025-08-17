@@ -1,37 +1,42 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# set -x
 
 UTOPIA_ROOT=$(git rev-parse --show-toplevel)
 . "${UTOPIA_ROOT}/bin/runner"
 
-if [[ $# -ne 1 ]]; then
-  echo "Usage: $0 <topic_slug>"
-  exit 1
-fi
-TOPIC=$1
+gen_report () {
+  if [[ $# -ne 1 ]]; then
+    echo "Usage: $0 <topic_slug>"
+    exit 1
+  fi
+  TOPIC=$1
 
-# ../tmp/local-deep-researcher
-DEEP_RESEARCHER_DIR="${UTOPIA_ROOT}/tmp/local-deep-researcher"
+  # ../tmp/local-deep-researcher
+  DEEP_RESEARCHER_DIR="${UTOPIA_ROOT}/tmp/local-deep-researcher"
 
-( set -x && git clone https://github.com/harlantwood/local-deep-researcher.git  "$DEEP_RESEARCHER_DIR" || (cd "$DEEP_RESEARCHER_DIR" && git fetch && git reset --hard origin/main ) )
+  ( set -x && git clone https://github.com/harlantwood/local-deep-researcher.git  "$DEEP_RESEARCHER_DIR" || (cd "$DEEP_RESEARCHER_DIR" && git fetch && git reset --hard origin/main ) )
 
-cd "$DEEP_RESEARCHER_DIR"
+  cd "$DEEP_RESEARCHER_DIR"
 
-shell python -m venv .venv
-shell source .venv/bin/activate
+  shell python -m venv .venv
+  shell source .venv/bin/activate
 
-if ! command -v uvx &>/dev/null; then
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-fi
+  if ! command -v uvx &>/dev/null; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  fi
 
-cd -
+  cd -
 
+  npx --yes concurrently \
+    --kill-others \
+    --names "deep-server,deep-client,lmstudio   " \
+    --prefix-colors "blue,green,magenta" \
+    -- \
+    "set -x && cd \"$DEEP_RESEARCHER_DIR\" && uvx --refresh --from \"langgraph-cli[inmem]\" --with-editable . --python 3.11 langgraph dev --no-browser --studio-url http://localhost:2024" \
+    "bin/gen-report-client \"$TOPIC\"" \
+    "lms server start && lms status && lms log stream"
+}
 
-npx --yes concurrently \
-  --kill-others \
-  --names "deep-server,deep-client,lmstudio   " \
-  --prefix-colors "blue,green,magenta" \
-  -- \
-  'set -x && cd "'"$DEEP_RESEARCHER_DIR"'" && uvx --refresh --from "langgraph-cli[inmem]" --with-editable . --python 3.11 langgraph dev --no-browser --studio-url http://localhost:2024' \
-  'bin/gen-report-client "'"$TOPIC"'"' \
-  'lms server start && lms status && lms log stream' \
+set -x
+run gen_report "$@"

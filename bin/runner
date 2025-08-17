@@ -5,21 +5,12 @@ set -euo pipefail
 COLOR_HIGHLIGHT='\033[1;35m'
 NO_COLOR='\033[0m'
 
-main () {
-  run_targets "$@"
-}
-
-run_targets () {
-  for func in "$@"; do
-    run "$func"
-  done
-}
-
 run () {
   func=$1
+  shift
   if [[ $(type -t $func || true) == function ]]; then
     print_func "${func}"
-    $func
+    $func "$@"
   else
     echo "Unknown command: ${func}"
     exit 1
@@ -50,4 +41,4 @@ in_test_env () {
 }
 
 # Note: This file deliberately defines helpers only.
-# Source it from bin/* command scripts and call: main your_func_name
+# Source it from bin/* command scripts and call: run your_func_name
