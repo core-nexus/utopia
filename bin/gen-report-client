@@ -1,19 +1,20 @@
 #!/bin/bash
 set -euo pipefail
-set -x
+# set -x
 
 if [[ -z "${1:-}" ]]; then
   echo "Usage: $0 <topic_slug>"
   exit 1
 fi
-TOPIC=$1
+TOPIC_SLUG=$1
+RESEARCH_TOPIC=$(cd bin/nodejs && yarn tsx topic-reader.ts "$TOPIC_SLUG")
 
-npx --yes wait-on "http://127.0.0.1:2024/docs"
+LANGGRAPH_SERVER=http://127.0.0.1:2024
+npx --yes wait-on "http://${LANGGRAPH_SERVER}/docs" # wait for the server to be ready
 
-BASE=http://127.0.0.1:2024
 
 ASSIST=$(
-curl -s -X POST "$BASE/assistants" \
+curl -s -X POST "$LANGGRAPH_SERVER/assistants" \
   -H 'Content-Type: application/json' \
   -d '{
     "graph_id": "ollama_deep_researcher",
@@ -33,14 +34,14 @@ curl -s -X POST "$BASE/assistants" \
   }' | jq -r '.assistant_id'
 )
 
-echo "assistant_id: $ASSIST"=
+echo "assistant_id: $ASSIST"
 
-curl -s -X POST http://127.0.0.1:2024/runs/wait \
+curl -s -X POST http://${LANGGRAPH_SERVER}/runs/wait \
   -H 'Content-Type: application/json' \
   -d '{
     "assistant_id": "'"$ASSIST"'",
     "input": {
-      "research_topic": "'"$TOPIC"'"
+      "research_topic": "'"$RESEARCH_TOPIC"'"
     },
     "config": { "configurable": {
       "llm_provider": "lmstudio",
