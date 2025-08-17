@@ -6,7 +6,7 @@ UTOPIA_ROOT=$(git rev-parse --show-toplevel)
 . "${UTOPIA_ROOT}/bin/runner"
 
 gen_report () {
-  if [[ $# -ne 1 ]]; then
+  if [[ $# -lt 1 ]]; then
     echo "Usage: $0 <topic_slug>"
     exit 1
   fi

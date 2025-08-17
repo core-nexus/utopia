@@ -5,16 +5,47 @@ set -x
 UTOPIA_ROOT=$(git rev-parse --show-toplevel)
 . "${UTOPIA_ROOT}/bin/runner"
 
-if [[ -z "${1:-}" ]]; then
-  echo "Usage: $0 <topic_slug>"
+# Parse arguments
+QUICK_MODE=false
+TOPIC_SLUG=""
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --quick)
+      QUICK_MODE=true
+      shift
+      ;;
+    *)
+      if [[ -z "$TOPIC_SLUG" ]]; then
+        TOPIC_SLUG=$1
+      else
+        echo "Error: Unknown argument $1"
+        exit 1
+      fi
+      shift
+      ;;
+  esac
+done
+
+if [[ -z "$TOPIC_SLUG" ]]; then
+  echo "Usage: $0 [--quick] <topic_slug>"
   exit 1
 fi
-TOPIC_SLUG=$1
 
 RESEARCH_TOPIC=$(cd bin/nodejs && yarn tsx topic-reader.ts "$TOPIC_SLUG")
 
 LANGGRAPH_SERVER=http://127.0.0.1:2024
 shell npx --yes wait-on "${LANGGRAPH_SERVER}/docs" # wait for the server to be ready
+
+# Set research parameters based on quick mode
+if [[ "$QUICK_MODE" == "true" ]]; then
+  MAX_LOOPS=1
+  FETCH_FULL="false"
+else
+  MAX_LOOPS=4
+  FETCH_FULL="true"
+fi
+
 
 # Create assistant using more robust curl with proper JSON handling
 ASSIST=$(
@@ -22,19 +53,7 @@ curl -s -X POST "$LANGGRAPH_SERVER/assistants" \
   -H 'Content-Type: application/json' \
   -d '{
     "graph_id": "ollama_deep_researcher",
-    "name": "deep-research (LMStudio)",
-    "default_config": {
-      "configurable": {
-        "llm_provider": "lmstudio",
-        "lmstudio_base_url": "http://localhost:1234/v1",
-        "local_llm": "openai/gpt-oss-20b",
-        "search_api": "duckduckgo",
-        "fetch_full_page": true,
-        "max_web_research_loops": 2,
-        "use_tool_calling": true,
-        "strip_thinking_tokens": true
-      }
-    }
+    "name": "deep-research (LMStudio)"
   }' | jq -r '.assistant_id'
 )
 
@@ -53,9 +72,11 @@ cat > "$TEMP_JSON" <<EOF
       "llm_provider": "lmstudio",
       "lmstudio_base_url": "http://localhost:1234/v1",
       "local_llm": "openai/gpt-oss-20b",
-      "max_web_research_loops": 5,
-      "fetch_full_page": true,
-      "use_tool_calling": false
+      "max_web_research_loops": $MAX_LOOPS,
+      "fetch_full_page": $FETCH_FULL,
+      "use_tool_calling": true,
+      "search_api": "duckduckgo",
+      "strip_thinking_tokens": true
     }
   }
 }
@@ -63,6 +84,9 @@ EOF
 
 curl -s -X POST "${LANGGRAPH_SERVER}/runs/wait" \
   -H 'Content-Type: application/json' \
-  -d "@$TEMP_JSON"
+  -d "@$TEMP_JSON" | \
+  jq -r '.running_summary' > "topics/$TOPIC_SLUG/reports/report.md"
 
 rm "$TEMP_JSON"
+
+echo "Report saved to: topics/$TOPIC_SLUG/reports/report.md"
