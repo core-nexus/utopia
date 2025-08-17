@@ -1,0 +1,53 @@
+#!/bin/bash
+set -euo pipefail
+set -x
+
+if [[ -z "${1:-}" ]]; then
+  echo "Usage: $0 <topic_slug>"
+  exit 1
+fi
+TOPIC=$1
+
+npx --yes wait-on "http://127.0.0.1:2024/docs"
+
+BASE=http://127.0.0.1:2024
+
+ASSIST=$(
+curl -s -X POST "$BASE/assistants" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "graph_id": "ollama_deep_researcher",
+    "name": "deep-research (LMStudio)",
+    "default_config": {
+      "configurable": {
+        "llm_provider": "lmstudio",
+        "lmstudio_base_url": "http://localhost:1234/v1",
+        "local_llm": "openai/gpt-oss-20b",
+        "search_api": "duckduckgo",
+        "fetch_full_page": true,
+        "max_web_research_loops": 2,
+        "use_tool_calling": true,
+        "strip_thinking_tokens": true
+      }
+    }
+  }' | jq -r '.assistant_id'
+)
+
+echo "assistant_id: $ASSIST"=
+
+curl -s -X POST http://127.0.0.1:2024/runs/wait \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "assistant_id": "'"$ASSIST"'",
+    "input": {
+      "research_topic": "'"$TOPIC"'"
+    },
+    "config": { "configurable": {
+      "llm_provider": "lmstudio",
+      "lmstudio_base_url": "http://localhost:1234/v1",
+      "local_llm": "openai/gpt-oss-20b",
+      "max_web_research_loops": 5,
+      "fetch_full_page": true,
+      "use_tool_calling": false
+    }}
+  }'
