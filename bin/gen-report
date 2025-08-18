@@ -30,6 +30,7 @@ gen_report () {
 
   npx --yes concurrently \
     --kill-others \
+    --success first \
     --names "deep-server,deep-client,lmstudio   " \
     --prefix-colors "blue,green,magenta" \
     -- \
