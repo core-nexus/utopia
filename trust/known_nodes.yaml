@@ -1,0 +1,6 @@
+nodes:
+  - url: 'https://github.com/core-nexus/utopia'
+    score: 1
+    type: core
+    description: Core Utopia project repository
+last_updated: '2025-09-05T20:29:17.476Z'
